@@ -1,0 +1,34 @@
+# ── Staging Environment Overrides ─────────────────────────────
+# Only values that DIFFER from defaults need to be listed here.
+
+backend:
+  replicas: 2
+  image:
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+  hpa:
+    minReplicas: 2
+    maxReplicas: 8
+  config:
+    debug: "false"
+
+frontend:
+  replicas: 2
+  image:
+    pullPolicy: IfNotPresent
+
+database:
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi

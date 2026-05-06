@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-backend-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Chart.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  REDIS_URL: {{ .Values.backend.config.redisUrl | quote }}
+  BASE_URL: {{ .Values.backend.config.baseUrl | quote }}
+  DEBUG: {{ .Values.backend.config.debug | quote }}
+  CACHE_TTL: {{ .Values.backend.config.cacheTtl | quote }}

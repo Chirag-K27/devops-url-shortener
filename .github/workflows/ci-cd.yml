@@ -1,0 +1,124 @@
+# ── CI/CD Pipeline: Build & Push Docker Images ──────────────
+name: CI/CD Pipeline
+
+# ── TRIGGER: When does this pipeline run? ────────────────────
+on:
+  push:
+    branches: [main, develop]         # Run on push to main or develop
+  pull_request:
+    branches: [main]                  # Run on PRs targeting main
+
+# ── ENVIRONMENT VARIABLES (shared across all jobs) ───────────
+env:
+  REGISTRY: ghcr.io                                # GitHub Container Registry
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/url-shortener-backend
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/url-shortener-frontend
+
+# ── JOBS ─────────────────────────────────────────────────────
+jobs:
+
+  # ── JOB 1: Build & Push Backend ────────────────────────────
+  build-backend:
+    name: Build Backend Image
+    runs-on: ubuntu-latest            # GitHub gives us a free Linux VM
+    permissions:
+      contents: read
+      packages: write                 # Needed to push to GHCR
+
+    steps:
+      # Step 1: Download our code onto the VM
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Login to GitHub Container Registry
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}             # Your GitHub username (automatic)
+          password: ${{ secrets.GITHUB_TOKEN }}      # Auto-generated token (no setup needed!)
+
+      # Step 3: Extract metadata (tags, labels) for the image
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BACKEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      # Step 4: Build and push the Docker image
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/backend
+          push: ${{ github.event_name != 'pull_request' }}   # Don't push on PRs
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # ── JOB 2: Build & Push Frontend ──────────────────────────
+  build-frontend:
+    name: Build Frontend Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.FRONTEND_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/frontend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  # ── JOB 3: Update Helm Values (only on main branch) ───────
+  update-helm:
+    name: Update Helm Image Tags
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]   # Wait for both builds to finish
+    if: github.ref == 'refs/heads/main'      # Only run on main branch pushes
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update image tags in values.yaml
+        run: |
+          SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          echo "Updating image tags to: $SHORT_SHA"
+
+          # Update backend image tag
+          sed -i "s/tag: .*/tag: $SHORT_SHA/" helm/url-shortener/values.yaml
+
+          # Commit the change
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add helm/url-shortener/values.yaml
+          git commit -m "ci: update image tags to $SHORT_SHA [skip ci]" || echo "No changes to commit"
+          git push

@@ -1,0 +1,72 @@
+# ── Default Values (Dev Environment) ──────────────────────────
+
+# ── Backend ───────────────────────────────────────────────────
+backend:
+  replicas: 2
+  image:
+    repository: url-shortener-backend
+    tag: latest
+    pullPolicy: Never    # "Never" for local, "IfNotPresent" for prod
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    cpuTarget: 70
+    memoryTarget: 80
+  config:
+    redisUrl: "redis://redis-service:6379/0"
+    baseUrl: "http://localhost"
+    debug: "true"
+    cacheTtl: "3600"
+
+# ── Frontend ──────────────────────────────────────────────────
+frontend:
+  replicas: 2
+  image:
+    repository: url-shortener-frontend
+    tag: latest
+    pullPolicy: Never
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+  service:
+    type: LoadBalancer
+    port: 80
+
+# ── Database (PostgreSQL) ─────────────────────────────────────
+database:
+  image: postgres:15-alpine
+  storage: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  credentials:
+    user: postgres
+    password: postgres
+    dbName: urlshortener
+
+# ── Redis ─────────────────────────────────────────────────────
+redis:
+  image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi

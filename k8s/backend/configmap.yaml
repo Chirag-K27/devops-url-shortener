@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: url-shortener
+data:
+  REDIS_URL: "redis://redis-service:6379/0"
+  BASE_URL: "http://localhost"
+  DEBUG: "false"
+  CACHE_TTL: "3600"

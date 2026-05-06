@@ -1,0 +1,52 @@
+# ── Production Environment Overrides ──────────────────────────
+# Maximum resources, high availability, strict security.
+
+backend:
+  replicas: 3
+  image:
+    pullPolicy: Always    # Always pull latest from registry
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 1Gi
+  hpa:
+    minReplicas: 3
+    maxReplicas: 15
+    cpuTarget: 60
+  config:
+    debug: "false"
+    baseUrl: "https://short.yourdomain.com"
+
+frontend:
+  replicas: 3
+  image:
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+database:
+  storage: 20Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+redis:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

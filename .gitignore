@@ -1,0 +1,30 @@
+# Private reference files
+devops_portfolio_projects.md
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log
+
+# Python
+*.egg-info/
+dist/
+build/
