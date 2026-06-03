@@ -10,6 +10,34 @@ A microservices-based URL shortening platform with full DevOps infrastructure: c
 
 ## 🏗️ Architecture
 
+### Local Development (Docker Compose / Minikube)
+
+```
+                            ┌──────────────────────────────────────────────┐
+                            │            Kubernetes Cluster (Local)         │
+                            │                                               │
+  User ───► localhost ─────►│   ┌───────────┐       ┌──────────────┐       │
+                            │   │  NGINX    │──────►│   FastAPI     │       │
+                            │   │ (Frontend)│       │  (Backend)    │       │
+                            │   │  React    │       │  REST API     │       │
+                            │   └───────────┘       └──────┬───────┘       │
+                            │                              │                │
+                            │                    ┌─────────┴─────────┐     │
+                            │                    │                   │     │
+                            │              ┌─────▼─────┐     ┌──────▼──┐  │
+                            │              │ PostgreSQL │     │  Redis  │  │
+                            │              │ (Local Vol)│     │ (Cache) │  │
+                            │              └───────────┘     └─────────┘  │
+                            │                                               │
+                            │   ┌───────────┐       ┌──────────────┐       │
+                            │   │Prometheus │──────►│   Grafana     │       │
+                            │   │(Metrics)  │       │ (Dashboards)  │       │
+                            │   └───────────┘       └──────────────┘       │
+                            └──────────────────────────────────────────────┘
+```
+
+### Cloud Production (AWS EKS)
+
 ```
                     ┌──────────────────────────────────────────────────────────┐
                     │                    AWS Cloud (ap-south-1)                │
@@ -29,11 +57,6 @@ A microservices-based URL shortening platform with full DevOps infrastructure: c
                     │   │              │ PostgreSQL │     │  Redis  │     │   │
                     │   │              │ (EBS Vol)  │     │ (Cache) │     │   │
                     │   │              └───────────┘     └─────────┘     │   │
-                    │   │                                                  │   │
-                    │   │   ┌───────────┐       ┌──────────────┐          │   │
-                    │   │   │Prometheus │──────►│   Grafana     │          │   │
-                    │   │   │(Metrics)  │       │ (Dashboards)  │          │   │
-                    │   │   └───────────┘       └──────────────┘          │   │
                     │   │                                                  │   │
                     │   │   t3.micro × 2 nodes │ VPC │ EBS CSI Driver     │   │
                     │   └──────────────────────────────────────────────────┘   │
