@@ -1,43 +1,48 @@
 # ⚡ Shortn — Production-Grade URL Shortener
 
-A microservices-based URL shortening platform with full DevOps infrastructure: containerized with Docker, orchestrated on Kubernetes via Helm, monitored with Prometheus & Grafana, and shipped through a GitHub Actions CI/CD pipeline.
+A microservices-based URL shortening platform with full DevOps infrastructure: containerized with Docker, orchestrated on Kubernetes via Helm, deployed to **AWS EKS**, monitored with Prometheus & Grafana, and shipped through a GitHub Actions CI/CD pipeline.
 
 > **This is not a tutorial project.** It demonstrates production-level practices: multi-stage Docker builds, Helm-based multi-environment deployments, automated image versioning, container-native monitoring, and GitOps-style CI/CD.
 
-![App Screenshot](docs/screenshots/URL_Shortner_UI_Working.png)
+![App Screenshot](docs/screenshots/Working_App_with_Live_AWS_Public_URL.png)
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-                            ┌──────────────────────────────────────────────┐
-                            │            Kubernetes Cluster                 │
-                            │                                               │
-  User ───► Port 80 ──────►│   ┌───────────┐       ┌──────────────┐       │
-                            │   │  NGINX    │──────►│   FastAPI     │       │
-                            │   │ (Frontend)│       │  (Backend)    │       │
-                            │   │  React    │       │  REST API     │       │
-                            │   └───────────┘       └──────┬───────┘       │
-                            │                              │                │
-                            │                    ┌─────────┴─────────┐     │
-                            │                    │                   │     │
-                            │              ┌─────▼─────┐     ┌──────▼──┐  │
-                            │              │ PostgreSQL │     │  Redis  │  │
-                            │              │ (Primary   │     │ (Cache) │  │
-                            │              │  Storage)  │     │         │  │
-                            │              └───────────┘     └─────────┘  │
-                            │                                               │
-                            │   ┌───────────┐       ┌──────────────┐       │
-                            │   │Prometheus │──────►│   Grafana     │       │
-                            │   │(Metrics)  │       │ (Dashboards)  │       │
-                            │   └───────────┘       └──────────────┘       │
-                            └──────────────────────────────────────────────┘
+                    ┌──────────────────────────────────────────────────────────┐
+                    │                    AWS Cloud (ap-south-1)                │
+                    │                                                          │
+                    │   ┌──────────────────────────────────────────────────┐   │
+                    │   │              EKS Cluster (url-shortener)         │   │
+                    │   │                                                  │   │
+  User ──► ELB ───►│   │   ┌───────────┐       ┌──────────────┐          │   │
+                    │   │   │  NGINX    │──────►│   FastAPI     │          │   │
+                    │   │   │ (Frontend)│       │  (Backend)    │          │   │
+                    │   │   │  React    │       │  REST API     │          │   │
+                    │   │   └───────────┘       └──────┬───────┘          │   │
+                    │   │                              │                   │   │
+                    │   │                    ┌─────────┴─────────┐        │   │
+                    │   │                    │                   │        │   │
+                    │   │              ┌─────▼─────┐     ┌──────▼──┐     │   │
+                    │   │              │ PostgreSQL │     │  Redis  │     │   │
+                    │   │              │ (EBS Vol)  │     │ (Cache) │     │   │
+                    │   │              └───────────┘     └─────────┘     │   │
+                    │   │                                                  │   │
+                    │   │   ┌───────────┐       ┌──────────────┐          │   │
+                    │   │   │Prometheus │──────►│   Grafana     │          │   │
+                    │   │   │(Metrics)  │       │ (Dashboards)  │          │   │
+                    │   │   └───────────┘       └──────────────┘          │   │
+                    │   │                                                  │   │
+                    │   │   t3.micro × 2 nodes │ VPC │ EBS CSI Driver     │   │
+                    │   └──────────────────────────────────────────────────┘   │
+                    └──────────────────────────────────────────────────────────┘
                                                │
-                            ┌──────────────────┴───────────────────────┐
-                            │          GitHub Actions CI/CD             │
-                            │  Build Images → Push GHCR → Update Helm  │
-                            └──────────────────────────────────────────┘
+                    ┌──────────────────────────┴───────────────────────────┐
+                    │               GitHub Actions CI/CD                    │
+                    │       Build Images → Push GHCR → Update Helm         │
+                    └──────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -55,27 +60,56 @@ A microservices-based URL shortening platform with full DevOps infrastructure: c
 | **Monitoring** | Prometheus + Grafana | Metrics collection & visualization |
 | **CI/CD** | GitHub Actions | Automated build, push, and version tagging |
 | **Registry** | GitHub Container Registry (GHCR) | Docker image storage |
+| **Cloud** | AWS EKS (Elastic Kubernetes Service) | Managed Kubernetes on AWS |
+| **Networking** | AWS VPC + ELB + Prefix Delegation | Cloud networking with public LoadBalancer |
+| **Storage** | AWS EBS (via CSI Driver) | Persistent block storage for PostgreSQL |
 
 ---
 
 ## 📸 Screenshots
 
-### CI/CD Pipeline — GitHub Actions
+### ☁️ AWS EKS — Live Cloud Deployment
+
+**App running on AWS with public ELB URL** — accessible from anywhere in the world:
+
+![Live App on AWS](docs/screenshots/Working_App_with_Live_AWS_Public_URL.png)
+
+**EKS Cluster Console** — Kubernetes 1.34, Active, zero health issues:
+
+![EKS Console](docs/screenshots/AWS_EKS_State.png)
+
+**EC2 Worker Nodes** — 2× t3.micro instances running across availability zones:
+
+![EC2 Nodes](docs/screenshots/AWS_EC2_State.png)
+
+**All Pods Running on EKS** — Frontend, Backend (×3), PostgreSQL, Redis:
+
+![EKS Pods](docs/screenshots/AWS_Prod_Env_pods.png)
+
+**Cluster Nodes via kubectl:**
+
+![kubectl nodes](docs/screenshots/AWS_Nodes.png)
+
+**Helm Release deployed to EKS:**
+
+![Helm List](docs/screenshots/AWS_Helm_List.png)
+
+### 🔄 CI/CD Pipeline — GitHub Actions
 All three jobs (Build Backend, Build Frontend, Update Helm) running automatically on every push to `main`:
 
 ![CI/CD Pipeline](docs/screenshots/All_Stage_visualization.png)
 
-### Monitoring — Grafana Cluster Dashboard
+### 📊 Monitoring — Grafana Cluster Dashboard
 Prometheus collecting metrics from all namespaces. The `url-shortener-dev` namespace runs 6 pods across 4 workloads:
 
 ![Grafana Dashboard](docs/screenshots/Grafana_cluster_dashboard_.png)
 
-### API — FastAPI Interactive Docs
+### 🔌 API — FastAPI Interactive Docs
 Auto-generated OpenAPI documentation with live API testing:
 
 ![FastAPI Docs](docs/screenshots/FastAPI_Docs_Full_OverView_Page.png)
 
-### Kubernetes — Pod Health
+### 🏠 Local Kubernetes — Pod Health
 All pods running with configured resource requests and limits:
 
 ![K8s Pods](docs/screenshots/K8s%20Pods_Running.png)
@@ -143,7 +177,7 @@ docker-compose up --build
 # Health:      http://localhost:8000/api/health
 ```
 
-### Option 2: Kubernetes + Helm
+### Option 2: Kubernetes + Helm (Local)
 
 ```bash
 # Deploy to dev environment
@@ -155,17 +189,44 @@ helm install url-shortener-staging ./helm/url-shortener \
   -f ./helm/url-shortener/values-staging.yaml \
   --create-namespace -n url-shortener-staging
 
-# Deploy to production
-helm install url-shortener-prod ./helm/url-shortener \
-  -f ./helm/url-shortener/values-prod.yaml \
-  --create-namespace -n url-shortener-prod
-
 # Verify
 kubectl get pods -n url-shortener-dev
 helm list -A
 ```
 
-### Option 3: Monitoring Stack
+### Option 3: AWS EKS (Cloud Production)
+
+```bash
+# 1. Create EKS cluster (control plane only)
+eksctl create cluster --name url-shortener --region ap-south-1 --without-nodegroup
+
+# 2. Enable VPC CNI Prefix Delegation (allows >4 pods on t3.micro)
+kubectl set env daemonset aws-node -n kube-system ENABLE_PREFIX_DELEGATION=true
+kubectl set env daemonset aws-node -n kube-system WARM_PREFIX_TARGET=1
+
+# 3. Add worker nodes with increased pod limit
+eksctl create nodegroup --cluster url-shortener --region ap-south-1 \
+  --nodes 2 --node-type t3.micro --managed --name ng-prod --max-pods-per-node 20
+
+# 4. Install EBS CSI driver (required for PostgreSQL persistent storage)
+eksctl create addon --name aws-ebs-csi-driver --cluster url-shortener --region ap-south-1
+
+# 5. Deploy the application
+helm install url-shortener-prod ./helm/url-shortener \
+  -f ./helm/url-shortener/values-prod.yaml \
+  --create-namespace -n url-shortener-prod
+
+# 6. Expose via AWS LoadBalancer
+kubectl expose deployment url-shortener-prod-frontend \
+  --port=80 --target-port=80 --name=frontend-lb \
+  --type=LoadBalancer -n url-shortener-prod
+
+# 7. Get public URL
+kubectl get svc frontend-lb -n url-shortener-prod
+# → EXTERNAL-IP: xxxxxx.ap-south-1.elb.amazonaws.com
+```
+
+### Option 4: Monitoring Stack
 
 ```bash
 # Install Prometheus + Grafana
@@ -253,6 +314,9 @@ Helm values enable environment-specific deployments without code changes:
 | **Helm over raw manifests** | Enables templating, value overrides, and single-command deployments across environments |
 | **Commit SHA as image tag** | Every build is traceable to a specific commit — enables instant rollback |
 | **GitHub Actions over Jenkins** | Zero infrastructure to maintain, native GitHub integration, free for public repos |
+| **VPC CNI Prefix Delegation** | Overcomes AWS ENI limits on t3.micro (4→20 pods per node) for cost-effective EKS |
+| **PGDATA subdirectory** | Avoids EBS ext4 `lost+found` conflict that crashes PostgreSQL initialization |
+| **EBS CSI Driver + IAM Policy** | Required for dynamic PersistentVolume provisioning on EKS — not installed by default |
 
 ---
 
@@ -277,7 +341,7 @@ Helm values enable environment-specific deployments without code changes:
 - [x] Phase 4: Helm chart (multi-environment)
 - [x] Phase 5: Monitoring (Prometheus + Grafana)
 - [x] Phase 6: CI/CD (GitHub Actions → GHCR)
-- [ ] Phase 7: Cloud deployment (AWS EKS)
+- [x] Phase 7: Cloud deployment (AWS EKS) ✅
 
 ---
 
