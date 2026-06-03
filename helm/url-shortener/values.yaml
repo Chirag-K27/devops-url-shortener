@@ -5,7 +5,7 @@ backend:
   replicas: 2
   image:
     repository: url-shortener-backend
-    tag: f287137
+    tag: 013e1c4
     pullPolicy: Never    # "Never" for local, "IfNotPresent" for prod
   resources:
     requests:
@@ -31,7 +31,7 @@ frontend:
   replicas: 2
   image:
     repository: url-shortener-frontend
-    tag: f287137
+    tag: 013e1c4
     pullPolicy: Never
   resources:
     requests:
